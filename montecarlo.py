@@ -52,7 +52,21 @@ class Estimate(Simulation):
     """
 
     def __init__(self, low, high, lowest=float("-inf"), highest=float("inf")):
-        self.values = normal_values(low, high, lowest, highest)
+
+        # 90% of normal values will fall within +/- 1.64 standard
+        # deviations of the mean. We want 90% of values to fall between
+        # low and high, so we want to back out the desired standard
+        # deviation such that 1.64 standard deviations is the distance
+        # from mid to high (or to low).
+
+        half_width = (high - low) / 2
+        mid = low + half_width
+        stddev = half_width / z_90
+
+        def value():
+            return min(max(normalvariate(mid, stddev), lowest), highest)
+
+        self.values = iter(value, None)
 
     def accumulator(self):
         return []
@@ -120,25 +134,3 @@ class Composite:
     def __init__(self, own, children):
         self.own = own
         self.children = children
-
-
-#
-# Utility functions
-#
-
-
-def normal_values(low, high, lowest=float("-inf"), highest=float("inf")):
-    "Generator of random normal values given a 90% confidence interval."
-
-    half_width = (high - low) / 2
-    mid = low + half_width
-
-    # 90% of normal values will fall within +/- 1.64 standard
-    # deviations of the mean. We want 90% of values to fall between
-    # low and high, so we want to back out the desired standard
-    # deviation such that 1.64 standard deviations is the distance
-    # from mid to high (or to low).
-    stddev = half_width / z_90
-
-    while True:
-        yield min(max(normalvariate(mid, stddev), lowest), highest)
