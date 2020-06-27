@@ -1,9 +1,18 @@
-from montecarlo import Estimate, CompositeSimulation
+from montecarlo import Estimate, CompositeSimulation, NamedSimulation
 
 
-class CompositeSchedule(CompositeSimulation):
+class NamedEstimate(NamedSimulation, Estimate):
+
+    def __init__(self, **kwds):
+        super().__init__(**kwds)
+
+
+class CompositeSchedule(NamedSimulation, CompositeSimulation):
 
     "Schedule whose total time is a function of it's children."
+
+    def __init__(self, **kwds):
+        super().__init__(**kwds)
 
     def summarize_own(self, own):
         return self.confidence_interval(own)
