@@ -1,30 +1,33 @@
-#!/usr/bin/env python
-
 from montecarlo import Estimate, CompositeSimulation
 
 
-class Sequence(CompositeSimulation):
-    def combine_child_values(self, child_values):
-        return sum(child_values)
+class CompositeSchedule(CompositeSimulation):
+
+    "Schedule whose total time is a function of it's children."
 
     def summarize_own(self, own):
         return self.confidence_interval(own)
 
 
-if __name__ == "__main__":
+class Sequence(CompositeSchedule):
 
-    s = Sequence(
-        [
-            Estimate(5, 10, 0),
-            Estimate(5, 10, 0),
-            Estimate(5, 10, 0),
-            Estimate(5, 10, 0),
-        ]
-    )
+    "Children done in sequence."
 
-    r = s.run(100_000)
+    def combine_child_values(self, child_values):
+        return sum(child_values)
 
-    print(r.own)
 
-    for c in r.children:
-        print(f"  {c}")
+class Parallel(CompositeSchedule):
+
+    "Children done in parallel and all must complete."
+
+    def combine_child_values(self, child_values):
+        return max(child_values)
+
+
+class OneOf(CompositeSchedule):
+
+    "Children done in parallel but we stop when one completes."
+
+    def combine_child_values(self, child_values):
+        return min(child_values)

@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 from math import floor
 from random import normalvariate
 
@@ -87,7 +85,7 @@ class CompositeSimulation(Simulation):
         "Combine a set of simulated values for our children into our simulated value."
         pass
 
-    def summarize_own(self, self_acc):
+    def summarize_own(self, own):
         "Summarize our own accumulated top-level simulated values."
         pass
 
