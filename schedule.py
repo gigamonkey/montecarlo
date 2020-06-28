@@ -108,6 +108,7 @@ class CalendarSequence(CompositeSchedule, CalendarSimulation):
         end = child_values[-1].end
         return CalendarStep(days, start, end)
 
+
 class CalendarParallel(CompositeSchedule, CalendarSimulation):
 
     "Like Parallel except date aware."
@@ -129,28 +130,3 @@ class CalendarStep:
 
     def __post_init__(self):
         self.calendar_days = (self.end - self.start).days
-
-
-if __name__ == "__main__":
-
-    import pendulum
-
-    s = CalendarSequence(
-        "Test",
-        [
-            CalendarEstimate("Sub 1", 10, 20),
-            CalendarParallel(
-                "P1",
-                [
-                    CalendarEstimate("P-Sub 1", 10, 20),
-                    CalendarEstimate("P-Sub 2", 15, 30),
-                ],
-            ),
-        ],
-    )
-    c = Calendar({pendulum.parse("2020-07-03").date()})
-    r = s.run(iters=10_000, start=c.today(), calendar=c)
-
-    from util import json_dump
-
-    json_dump(asdict(r))
