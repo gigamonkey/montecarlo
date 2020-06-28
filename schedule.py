@@ -46,9 +46,6 @@ class CompositeSchedule(NamedSimulation, CompositeSimulation):
         NamedSimulation.__init__(self, name)
         CompositeSimulation.__init__(self, children)
 
-    def summarize_own(self, own):
-        return self.confidence_interval(own)
-
 
 class Sequence(CompositeSchedule):
 
@@ -91,52 +88,38 @@ class CalendarEstimate(NamedEstimate, CalendarSimulation, Estimate):
         return s
 
 
-class CalendarComposite(CompositeSchedule, CalendarSimulation):
-    def summarize_own(self, own):
-        return {
-            key: self.confidence_interval([getattr(a, key) for a in own])
-            for key in ("days", "calendar_days", "start", "end")
-        }
 
-
-class CalendarSequence(CalendarComposite):
+class CalendarSequence(CompositeSchedule, CalendarSimulation):
 
     "Like Sequence except date aware."
 
     def step_children(self, accumulators, start=None, calendar=None, **kwds):
-        child_values = []
+
         next_start = start
-        for c, a in zip(self.children, accumulators):
+
+        def step(c, a):
+            nonlocal next_start
             v = c.step(a, start=next_start, calendar=calendar, **kwds)
             next_start = v.end
-            child_values.append(v)
+            return v
 
-        return child_values
+        return [step(c, a) for c, a in zip(self.children, accumulators)]
 
     def combine_child_values(self, child_values):
-        return CalendarStep(
-            sum(c.days for c in child_values),
-            child_values[0].start,
-            child_values[-1].end,
-        )
+        days = sum(c.days for c in child_values)
+        start = child_values[0].start
+        end = child_values[-1].end
+        return CalendarStep(days, start, end)
 
-
-class CalendarParallel(CalendarComposite):
+class CalendarParallel(CompositeSchedule, CalendarSimulation):
 
     "Like Parallel except date aware."
 
-    def step_children(self, accumulators, start=None, calendar=None, **kwds):
-        return [
-            c.step(a, start=start, calendar=calendar, **kwds)
-            for c, a in zip(self.children, accumulators)
-        ]
-
     def combine_child_values(self, child_values):
-        return CalendarStep(
-            max(c.days for c in child_values),
-            child_values[0].start,
-            max(c.end for c in child_values),
-        )
+        days = max(c.days for c in child_values)
+        start = child_values[0].start
+        end = max(c.end for c in child_values)
+        return CalendarStep(days, start, end)
 
 
 @dataclass

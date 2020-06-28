@@ -19,6 +19,7 @@ class Simulation:
 
     def summarize(self, accumulator):
         "Summarize the accumulated values."
+        return self.confidence_interval(accumulator)
 
     def run(self, iters, **kwds):
         "Simulate by producing and accumulating iters steps."
@@ -71,9 +72,6 @@ class Estimate(Simulation):
         accumulator.append(s)
         return s
 
-    def summarize(self, accumulator):
-        return self.confidence_interval(accumulator)
-
 
 class CompositeSimulation(Simulation):
 
@@ -85,26 +83,12 @@ class CompositeSimulation(Simulation):
     def __init__(self, children):
         self.children = children
 
-    #
-    # Abstract
-    #
-
     def combine_child_values(self, child_values):
-        "Combine a set of simulated values for our children into our simulated value."
-
-    def summarize_own(self, own):
-        "Summarize our own accumulated top-level simulated values."
-
-    #
-    # Default implementation
-    #
+        "Combine list of our children's step values into our step value."
 
     def step_children(self, accumulators, **kwds):
+        "Step our children and return the result."
         return [c.step(a, **kwds) for c, a in zip(self.children, accumulators)]
-
-    #
-    # Concrete methods.
-    #
 
     def accumulator(self):
         return Composite([], [c.accumulator() for c in self.children])
@@ -116,8 +100,8 @@ class CompositeSimulation(Simulation):
 
     def summarize(self, accumulator):
         return Composite(
-            self.summarize_own(accumulator.own),
-            [c.summarize(a) for a, c in zip(accumulator.children, self.children)],
+            super().summarize(accumulator.own),
+            [c.summarize(a) for c, a in zip(self.children, accumulator.children)],
         )
 
 
