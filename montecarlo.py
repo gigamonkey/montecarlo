@@ -51,8 +51,7 @@ class Estimate(Simulation):
     estimate.
     """
 
-    def __init__(self, low, high, lowest=float("-inf"), highest=float("inf"), **kwds):
-        super().__init__(**kwds)
+    def __init__(self, low, high, lowest=float("-inf"), highest=float("inf")):
 
         # 90% of normal values will fall within +/- 1.64 standard
         # deviations of the mean. We want 90% of values to fall between
@@ -89,8 +88,7 @@ class CompositeSimulation(Simulation):
     way.
     """
 
-    def __init__(self, children, **kwds):
-        super().__init__(**kwds)
+    def __init__(self, children):
         self.children = children
 
     #
@@ -139,9 +137,7 @@ class Composite:
 
 
 class NamedSimulation(Simulation):
-
-    def __init__(self, name, **kwds):
-        super().__init__(**kwds)
+    def __init__(self, name):
         self.name = name
 
     def summarize(self, accumulator):
@@ -149,7 +145,6 @@ class NamedSimulation(Simulation):
 
 
 class NamedSummary:
-
     def __init__(self, name, summary):
         self.name = name
         self.summary = summary
