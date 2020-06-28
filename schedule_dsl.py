@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
-from typing import List
 from dataclasses import dataclass
-from schedule import *
+from typing import List
 
 
 @dataclass
@@ -94,7 +93,7 @@ def to_schedule(name, group):
     if not children:
         try:
             name, estimate = name.split(":")
-        except:
+        except Exception:
             raise Exception(f"Need estimate in leaf {name}")
         low, high = map(int, estimate.strip().split("-"))
         return Leaf(name, low, high)

@@ -1,7 +1,8 @@
+from dataclasses import asdict, dataclass, field
 from datetime import date
-from dataclasses import dataclass, field, asdict
-from montecarlo import Estimate, CompositeSimulation, NamedSimulation, Simulation
+
 from cal import Calendar
+from montecarlo import CompositeSimulation, Estimate, NamedSimulation, Simulation
 
 # Simple estimate: values are just ideal days.
 
@@ -137,7 +138,7 @@ if __name__ == "__main__":
     import pendulum
 
     s = CalendarSequence(
-        "Test", [CalendarEstimate("Sub 1", 10, 20), CalendarEstimate("Sub 2", 10, 20),]
+        "Test", [CalendarEstimate("Sub 1", 10, 20), CalendarEstimate("Sub 2", 10, 20)]
     )
     c = Calendar({pendulum.parse("2020-07-03").date()})
     r = s.run(iters=10_000, start=c.today(), calendar=c)

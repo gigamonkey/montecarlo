@@ -13,15 +13,12 @@ class Simulation:
 
     def accumulator(self):
         "Produce an accumulator to hold results of each step."
-        pass
 
     def step(self, accumulator, **kwds):
         "Produce one step of the simulation and add it to the accumulator."
-        pass
 
     def summarize(self, accumulator):
         "Summarize the accumulated values."
-        pass
 
     def run(self, iters, **kwds):
         "Simulate by producing and accumulating iters steps."
@@ -38,10 +35,7 @@ class Simulation:
         ordered = sorted(values)
         size = len(ordered)
         outside = (1 - p) / 2
-        return (
-            ordered[floor(size * outside)],
-            ordered[floor(size * 1 - outside)],
-        )
+        return (ordered[floor(size * outside)], ordered[floor(size * 1 - outside)])
 
 
 class Estimate(Simulation):
@@ -97,11 +91,9 @@ class CompositeSimulation(Simulation):
 
     def combine_child_values(self, child_values):
         "Combine a set of simulated values for our children into our simulated value."
-        pass
 
     def summarize_own(self, own):
         "Summarize our own accumulated top-level simulated values."
-        pass
 
     #
     # Concrete methods.

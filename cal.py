@@ -1,6 +1,4 @@
-from datetime import date
 import pendulum
-from dataclasses import dataclass
 
 
 class Calendar:

@@ -1,8 +1,7 @@
 #!/usr/bin/env python
 
-from montecarlo import *
-from schedule import *
-from schedule_dsl import *
+from schedule import NamedEstimate, Parallel, Sequence
+from schedule_dsl import Plus, parse
 
 
 def show_results(r, indent):
