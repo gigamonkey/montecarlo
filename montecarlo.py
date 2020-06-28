@@ -1,5 +1,7 @@
+from dataclasses import dataclass
 from math import floor
 from random import normalvariate
+from typing import List
 
 # From https://en.wikipedia.org/wiki/Normal_distribution#Quantile_function
 z_90 = 1.644853626951
@@ -13,12 +15,8 @@ class Simulation:
         "Produce an accumulator to hold results of each step."
         pass
 
-    def add(self, accumulator, step):
-        "Add the results of a step to our accumulator."
-        pass
-
-    def step(self):
-        "Produce one step of the simulation."
+    def step(self, accumulator):
+        "Produce one step of the simulation and add it to the accumulator."
         pass
 
     def summarize(self, accumulator):
@@ -29,7 +27,7 @@ class Simulation:
         "Simulate by producing and accumulating iters steps."
         acc = self.accumulator()
         for _ in range(iters):
-            self.add(acc, self.step())
+            self.step(acc)
         return self.summarize(acc)
 
     def confidence_interval(self, values, p=0.9):
@@ -71,11 +69,10 @@ class Estimate(Simulation):
     def accumulator(self):
         return []
 
-    def add(self, accumulator, step):
-        accumulator.append(step)
-
-    def step(self):
-        return next(self.values)
+    def step(self, accumulator):
+        s = next(self.values)
+        accumulator.append(s)
+        return s
 
     def summarize(self, accumulator):
         return self.confidence_interval(accumulator)
@@ -110,16 +107,11 @@ class CompositeSimulation(Simulation):
     def accumulator(self):
         return Composite([], [c.accumulator() for c in self.children])
 
-    def add(self, accumulator, step):
-        accumulator.own.append(step.own)
-        child_accs_and_steps = zip(accumulator.children, step.children)
-        for child, (a, s) in zip(self.children, child_accs_and_steps):
-            child.add(a, s)
-
-    def step(self):
-        child_steps = [c.step() for c in self.children]
-        child_values = [c.own if hasattr(c, "own") else c for c in child_steps]
-        return Composite(self.combine_child_values(child_values), child_steps)
+    def step(self, accumulator):
+        cv = [c.step(a) for c, a in zip(self.children, accumulator.children)]
+        s = self.combine_child_values(cv)
+        accumulator.own.append(s)
+        return s
 
     def summarize(self, accumulator):
         return Composite(
@@ -128,13 +120,11 @@ class CompositeSimulation(Simulation):
         )
 
 
+@dataclass
 class Composite:
-
-    "Represent anything that has its own value and children values."
-
-    def __init__(self, own, children):
-        self.own = own
-        self.children = children
+    "Represent anything that has its own value and child values."
+    own: object
+    children: List[object]
 
 
 class NamedSimulation(Simulation):
