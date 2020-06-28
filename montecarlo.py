@@ -96,6 +96,13 @@ class CompositeSimulation(Simulation):
         "Summarize our own accumulated top-level simulated values."
 
     #
+    # Default implementation
+    #
+
+    def step_children(self, accumulators, **kwds):
+        return [c.step(a, **kwds) for c, a in zip(self.children, accumulators)]
+
+    #
     # Concrete methods.
     #
 
@@ -103,8 +110,7 @@ class CompositeSimulation(Simulation):
         return Composite([], [c.accumulator() for c in self.children])
 
     def step(self, accumulator, **kwds):
-        cv = [c.step(a, **kwds) for c, a in zip(self.children, accumulator.children)]
-        s = self.combine_child_values(cv)
+        s = self.combine_child_values(self.step_children(accumulator.children, **kwds))
         accumulator.own.append(s)
         return s
 

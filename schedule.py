@@ -40,7 +40,7 @@ class NamedEstimate(NamedSimulation, Estimate):
 
 class CompositeSchedule(NamedSimulation, CompositeSimulation):
 
-    "Schedule whose total time is a function of it's children."
+    "Schedule whose results are a function of its children."
 
     def __init__(self, name, children):
         NamedSimulation.__init__(self, name)
@@ -82,11 +82,7 @@ class CalendarSimulation(Simulation):
         }
 
 
-class CalendarEstimate(NamedSimulation, CalendarSimulation, Estimate):
-    def __init__(self, name, low, high):
-        NamedSimulation.__init__(self, name)
-        Estimate.__init__(self, low, high)
-
+class CalendarEstimate(NamedEstimate, CalendarSimulation, Estimate):
     def step(self, accumulator, start=None, calendar=None, **kwds):
         days = super().step([], **kwds)
         end = calendar.n_workdays_after(start, days)
@@ -95,17 +91,27 @@ class CalendarEstimate(NamedSimulation, CalendarSimulation, Estimate):
         return s
 
 
-class CalendarSequence(CompositeSchedule, CalendarSimulation):
-    def step(self, accumulator, start=None, calendar=None, **kwds):
+class CalendarComposite(CompositeSchedule, CalendarSimulation):
+    def summarize_own(self, own):
+        return {
+            key: self.confidence_interval([getattr(a, key) for a in own])
+            for key in ("days", "calendar_days", "start", "end")
+        }
+
+
+class CalendarSequence(CalendarComposite):
+
+    "Like Sequence except date aware."
+
+    def step_children(self, accumulators, start=None, calendar=None, **kwds):
         child_values = []
         next_start = start
-        for c, a in zip(self.children, accumulator.children):
+        for c, a in zip(self.children, accumulators):
             v = c.step(a, start=next_start, calendar=calendar, **kwds)
             next_start = v.end
             child_values.append(v)
-        s = self.combine_child_values(child_values)
-        accumulator.own.append(s)
-        return s
+
+        return child_values
 
     def combine_child_values(self, child_values):
         return CalendarStep(
@@ -114,11 +120,23 @@ class CalendarSequence(CompositeSchedule, CalendarSimulation):
             child_values[-1].end,
         )
 
-    def summarize_own(self, own):
-        return {
-            key: self.confidence_interval([getattr(a, key) for a in own])
-            for key in ("days", "calendar_days", "start", "end")
-        }
+
+class CalendarParallel(CalendarComposite):
+
+    "Like Parallel except date aware."
+
+    def step_children(self, accumulators, start=None, calendar=None, **kwds):
+        return [
+            c.step(a, start=start, calendar=calendar, **kwds)
+            for c, a in zip(self.children, accumulators)
+        ]
+
+    def combine_child_values(self, child_values):
+        return CalendarStep(
+            max(c.days for c in child_values),
+            child_values[0].start,
+            max(c.end for c in child_values),
+        )
 
 
 @dataclass
@@ -138,7 +156,17 @@ if __name__ == "__main__":
     import pendulum
 
     s = CalendarSequence(
-        "Test", [CalendarEstimate("Sub 1", 10, 20), CalendarEstimate("Sub 2", 10, 20)]
+        "Test",
+        [
+            CalendarEstimate("Sub 1", 10, 20),
+            CalendarParallel(
+                "P1",
+                [
+                    CalendarEstimate("P-Sub 1", 10, 20),
+                    CalendarEstimate("P-Sub 2", 15, 30),
+                ],
+            ),
+        ],
     )
     c = Calendar({pendulum.parse("2020-07-03").date()})
     r = s.run(iters=10_000, start=c.today(), calendar=c)
