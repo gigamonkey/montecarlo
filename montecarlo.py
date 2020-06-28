@@ -17,7 +17,6 @@ class Simulation:
 
     def step(self, accumulator, **kwds):
         "Produce one step of the simulation and add it to the accumulator."
-        print("In Simulation step")
         pass
 
     def summarize(self, accumulator):
@@ -27,7 +26,6 @@ class Simulation:
     def run(self, iters, **kwds):
         "Simulate by producing and accumulating iters steps."
         acc = self.accumulator()
-        print(f"Got acc {acc} from {self}")
         for _ in range(iters):
             self.step(acc, **kwds)
         return self.summarize(acc)
@@ -75,14 +73,11 @@ class Estimate(Simulation):
         return []
 
     def step(self, accumulator, **kwds):
-        print("In Estimate step")
         s = next(self.values)
         accumulator.append(s)
-        print(f"In Estimate step returning {s}")
         return s
 
     def summarize(self, accumulator):
-        print("In Estimate summarize")
         return self.confidence_interval(accumulator)
 
 
@@ -140,12 +135,7 @@ class NamedSimulation(Simulation):
         self.name = name
 
     def summarize(self, accumulator):
-        print("In NamedSimulation summarize")
         return NamedSummary(self.name, super().summarize(accumulator))
-
-    def step(self, acc, **kwds):
-        print("In NamedSimulation step")
-        return super().step(acc, **kwds)
 
 
 @dataclass

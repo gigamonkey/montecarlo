@@ -38,8 +38,7 @@ class Calendar:
         return start.add(weeks=whole_weeks, days=extra_days + weekend_days)
 
     def days_off_between(self, start, end):
-        return sum(d <= start <= end for d in self.days_off)
-
+        return sum(start <= d <= end for d in self.days_off)
 
 
 if __name__ == "__main__":
@@ -52,5 +51,8 @@ if __name__ == "__main__":
     padding = " " * len(f"{9:2d} days after: ")
     print(f"{padding}{starts}")
     for i in range(16):
-        ends = "".join(f"{c.n_weekdays_after(start.add(days=d), i).format('dddd'):12}" for d in range(7))
+        ends = "".join(
+            f"{c.n_weekdays_after(start.add(days=d), i).format('dddd'):12}"
+            for d in range(7)
+        )
         print(f"{i:2d} days after: {ends}")

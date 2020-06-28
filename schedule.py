@@ -1,5 +1,5 @@
 from datetime import date
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, asdict
 from montecarlo import Estimate, CompositeSimulation, NamedSimulation, Simulation
 from cal import Calendar
 
@@ -72,41 +72,52 @@ class OneOf(CompositeSchedule):
     def combine_child_values(self, child_values):
         return min(child_values)
 
-class CalendarSimulation(Simulation):
 
+class CalendarSimulation(Simulation):
     def summarize(self, accumulator):
-        print(f"In CalendarSimulation summarize accumulator {accumulator}")
         return {
             key: self.confidence_interval([getattr(a, key) for a in accumulator])
             for key in ("days", "calendar_days", "start", "end")
         }
 
-    def step(self, acc, **kwds):
-        print("In CalendarSimulation step")
-        return super().step(acc, **kwds)
 
-
-class CalendarEstimate(CalendarSimulation, NamedSimulation, Estimate):
-
+class CalendarEstimate(NamedSimulation, CalendarSimulation, Estimate):
     def __init__(self, name, low, high):
         NamedSimulation.__init__(self, name)
         Estimate.__init__(self, low, high)
 
     def step(self, accumulator, start=None, calendar=None, **kwds):
-        print("In CalendarEstimate step")
-        if start is None:
-            start = calendar.today()
-        print("Here")
         days = super().step([], **kwds)
-        print(f"Got days {days} from super")
         end = calendar.n_workdays_after(start, days)
         s = CalendarStep(days, start, end)
         accumulator.append(s)
         return s
 
-    def summarize(self, acc):
-        print(f"In CalendarEstimate summarize acc {acc}")
-        return super().summarize(acc)
+
+class CalendarSequence(CompositeSchedule, CalendarSimulation):
+    def step(self, accumulator, start=None, calendar=None, **kwds):
+        child_values = []
+        next_start = start
+        for c, a in zip(self.children, accumulator.children):
+            v = c.step(a, start=next_start, calendar=calendar, **kwds)
+            next_start = v.end
+            child_values.append(v)
+        s = self.combine_child_values(child_values)
+        accumulator.own.append(s)
+        return s
+
+    def combine_child_values(self, child_values):
+        return CalendarStep(
+            sum(c.days for c in child_values),
+            child_values[0].start,
+            child_values[-1].end,
+        )
+
+    def summarize_own(self, own):
+        return {
+            key: self.confidence_interval([getattr(a, key) for a in own])
+            for key in ("days", "calendar_days", "start", "end")
+        }
 
 
 @dataclass
@@ -121,13 +132,16 @@ class CalendarStep:
         self.calendar_days = (self.end - self.start).days
 
 
-
 if __name__ == "__main__":
 
     import pendulum
 
-    s = CalendarEstimate("test", 10, 20)
+    s = CalendarSequence(
+        "Test", [CalendarEstimate("Sub 1", 10, 20), CalendarEstimate("Sub 2", 10, 20),]
+    )
     c = Calendar({pendulum.parse("2020-07-03").date()})
-    r = s.run(iters=10, calendar=c)
+    r = s.run(iters=10_000, start=c.today(), calendar=c)
 
-    print(r)
+    from util import json_dump
+
+    json_dump(asdict(r))

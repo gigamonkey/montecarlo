@@ -24,9 +24,8 @@ if __name__ == "__main__":
         ],
     )
 
-    r = e.run(100_000)
-
-    show_results(r, 0)
+    # r = e.run(100_000)
+    # show_results(r, 0)
 
     with open("foo.txt") as f:
         ast = parse(f)
