@@ -80,13 +80,10 @@ class CalendarSimulation(Simulation):
 
 
 class CalendarEstimate(NamedEstimate, CalendarSimulation, Estimate):
-    def step(self, accumulator, start=None, calendar=None, **kwds):
-        days = super().step([], **kwds)
+    def make_step(self, start=None, calendar=None, **kwds):
+        days = super().make_step(**kwds)
         end = calendar.n_workdays_after(start, days)
-        s = CalendarStep(days, start, end)
-        accumulator.append(s)
-        return s
-
+        return CalendarStep(days, start, end)
 
 
 class CalendarSequence(CompositeSchedule, CalendarSimulation):

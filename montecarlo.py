@@ -14,8 +14,16 @@ class Simulation:
     def accumulator(self):
         "Produce an accumulator to hold results of each step."
 
+    def make_step(self, **kwds):
+        "Generate one simulated step"
+        # Called by the default step method but if step is overridden
+        # to directly create the step, this needn't be implemented.
+
     def step(self, accumulator, **kwds):
         "Produce one step of the simulation and add it to the accumulator."
+        s = self.make_step(**kwds)
+        accumulator.append(s)
+        return s
 
     def summarize(self, accumulator):
         "Summarize the accumulated values."
@@ -67,24 +75,19 @@ class Estimate(Simulation):
     def accumulator(self):
         return []
 
-    def step(self, accumulator, **kwds):
-        s = next(self.values)
-        accumulator.append(s)
-        return s
+    def make_step(self, **kwds):
+        return next(self.values)
 
 
 class CompositeSimulation(Simulation):
 
-    """
-    A simulation that works by composing simulated children in some
-    way.
-    """
+    "Simulate the composition of child simulations in some way."
 
     def __init__(self, children):
         self.children = children
 
     def combine_child_values(self, child_values):
-        "Combine list of our children's step values into our step value."
+        "Combine children's step values into our step value."
 
     def step_children(self, accumulators, **kwds):
         "Step our children and return the result."
@@ -94,7 +97,8 @@ class CompositeSimulation(Simulation):
         return Composite([], [c.accumulator() for c in self.children])
 
     def step(self, accumulator, **kwds):
-        s = self.combine_child_values(self.step_children(accumulator.children, **kwds))
+        child_values = self.step_children(accumulator.children, **kwds)
+        s = self.combine_child_values(child_values)
         accumulator.own.append(s)
         return s
 
