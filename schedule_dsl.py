@@ -18,10 +18,17 @@ class Leaf(Node):
     def dump(self, indent, op):
         print(f"{' ' * indent * 2}{op} {self.name}: {self.low}-{self.high}\n")
 
+    def map(self, f):
+        return f(self, None)
+
 
 @dataclass
 class Tree(Node):
     children: List[Node]
+
+    @classmethod
+    def fromOp(cls, op):
+        return Plus if op == "+" else Pipe
 
     def dump(self, indent, op):
         if self.name:
@@ -29,9 +36,8 @@ class Tree(Node):
         for c in self.children:
             c.dump(indent + 1, self.op)
 
-    @classmethod
-    def fromOp(cls, op):
-        return Plus if op == "+" else Pipe
+    def map(self, f):
+        return f(self, [c.map(f) for c in self.children])
 
 
 @dataclass
