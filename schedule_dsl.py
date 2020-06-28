@@ -8,14 +8,10 @@ class Plus:
         self.name = name
         self.children = children
 
-    def dump(self, indent=-1, op=None):
-        if self.name:
-            print(f"{' ' * indent * 2}{op} {self.name}\n")
+    def accept_visitor(self, visitor):
+        visitor.visit_plus(self)
         for c in self.children:
-            c.dump(indent + 1, "+")
-
-    def __repr__(self):
-        return ["PLUS", self.name, self.children].__repr__()
+            visitor.visit_child(c)
 
 
 class Pipe:
@@ -23,15 +19,10 @@ class Pipe:
         self.name = name
         self.children = children
 
-    def dump(self, indent=-1, op=None):
-        if self.name:
-            print(f"{' ' * indent * 2}{op} {self.name}\n")
+    def accept_visitor(self, visitor):
+        visitor.visit_pipe(self)
         for c in self.children:
-            c.dump(indent + 1, "|")
-
-    def __repr__(self):
-        return ["PIPE", self.name, self.children].__repr__()
-
+            visitor.visit_child(c)
 
 class Leaf:
     def __init__(self, name, low, high):
@@ -39,11 +30,59 @@ class Leaf:
         self.low = low
         self.high = high
 
-    def dump(self, indent=-1, op=None):
-        print(f"{' ' * indent * 2}{op} {self.name}: {self.low}-{self.high}\n")
+    def accept_visitor(self, visitor):
+        visitor.visit_leaf(self)
 
-    def __repr__(self):
-        return ["LEAF", self.name].__repr__()
+
+class Visitor:
+
+    def visit_plus(self, plus): pass
+
+    def visit_pipe(self, pipe): pass
+
+    def visit_leaf(self, leaf): pass
+
+    def visit_child(self, child): pass
+
+
+def dump(t, indent, op):
+    if isinstance(t, Leaf):
+        print(f"{' ' * indent * 2}{op} {t.name}: {t.low}-{t.high}\n")
+    else:
+        if t.name:
+            print(f"{' ' * indent * 2}{op} {t.name}\n")
+        op = "+" if isinstance(t, Plus) else "|"
+        for c in t.children:
+            dump(c, indent + 1, op)
+
+class Dumper(Visitor):
+
+    def __init__(self, indent=-1, op=None):
+        self.indent = -1
+        self.op = op
+
+    def dump(self, thing):
+        thing.accept_visitor(self)
+
+    def visit_plus(self, plus):
+        if plus.name:
+            print(f"{' ' * self.indent * 2}{self.op} {plus.name}\n")
+        self.op = "+"
+
+    def visit_pipe(self, pipe):
+        if pipe.name:
+            print(f"{' ' * self.indent * 2}{self.op} {pipe.name}\n")
+        self.op = "|"
+
+    def visit_leaf(self, leaf):
+        print(f"{' ' * self.indent * 2}{self.op} {leaf.name}: {leaf.low}-{leaf.high}\n")
+
+
+    def visit_child(self, child):
+        self.indent += 1
+        child.accept_visitor(self)
+        self.indent -= 1
+
 
 
 class Builder:
@@ -132,4 +171,9 @@ if __name__ == "__main__":
     t = parse(lines, Builder(Plus, Pipe, Leaf))
 
     # print(t)
-    t.dump()
+    #t.dump()
+    print()
+    Dumper().dump(t)
+
+    print()
+    dump(t, -1, None)
