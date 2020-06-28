@@ -75,10 +75,12 @@ def end_of_group(lines, s):
 
 
 def indentation(s):
-    i = 0
-    while i < len(s) and s[i] == " ":
-        i += 1
-    return i
+    for i in range(len(s)):
+        if s[i] != " ":
+            return i
+    # Technically this can't actually happen since we've already
+    # removed blank lines.
+    return len(s)
 
 
 def to_schedule(name, group):
