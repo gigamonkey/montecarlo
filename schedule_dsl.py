@@ -46,8 +46,24 @@ class Leaf:
         return ["LEAF", self.name].__repr__()
 
 
-def parse(lines):
-    return to_schedule(None, grouped(strip(lines)))
+class Builder:
+    def __init__(self, plus, pipe, leaf):
+        self.plus = plus
+        self.pipe = pipe
+        self.leaf = leaf
+
+    def build_plus(self, name, children):
+        return self.plus(name, children)
+
+    def build_pipe(self, name, children):
+        return self.pipe(name, children)
+
+    def build_leaf(self, name, low, high):
+        return self.leaf(name)
+
+
+def parse(lines, builder):
+    return to_schedule(None, grouped(strip(lines)), builder)
 
 
 def strip(lines):
@@ -84,31 +100,28 @@ def indentation(s):
     return i
 
 
-def to_schedule(name, group):
-    children = [node(x) for x in group]
+def to_schedule(name, group, builder):
+    children = [node(x, builder) for x in group]
     if not children:
         try:
             name, estimate = name.split(":")
         except:
             raise Exception(f"Need estimate in leaf {name}")
         low, high = map(int, estimate.strip().split("-"))
-        return Leaf(name, low, high)
+        return builder.leaf(name, low, high)
     else:
         op = group[0][0][0]
         if op == "+":
-            return Plus(name, children)
+            return builder.plus(name, children)
         elif op == "|":
-            return Pipe(name, children)
+            return builder.pipe(name, children)
         else:
             raise Exception(f"Bad op: {op}")
 
 
-def node(x):
+def node(x, builder):
     name, children = x
-    return to_schedule(name[2:], children)
-
-
-
+    return to_schedule(name[2:], children, builder)
 
 
 if __name__ == "__main__":
@@ -116,7 +129,7 @@ if __name__ == "__main__":
     with open("foo.txt") as f:
         lines = [line[:-1] for line in f]
 
-    t = parse(lines)
+    t = parse(lines, Builder(Plus, Pipe, Leaf))
 
     # print(t)
     t.dump()
