@@ -15,7 +15,7 @@ class Simulation:
         "Produce an accumulator to hold results of each step."
         pass
 
-    def step(self, accumulator):
+    def step(self, accumulator, **kwds):
         "Produce one step of the simulation and add it to the accumulator."
         pass
 
@@ -23,11 +23,11 @@ class Simulation:
         "Summarize the accumulated values."
         pass
 
-    def run(self, iters):
+    def run(self, iters, **kwds):
         "Simulate by producing and accumulating iters steps."
         acc = self.accumulator()
         for _ in range(iters):
-            self.step(acc)
+            self.step(acc, **kwds)
         return self.summarize(acc)
 
     def confidence_interval(self, values, p=0.9):
@@ -69,7 +69,7 @@ class Estimate(Simulation):
     def accumulator(self):
         return []
 
-    def step(self, accumulator):
+    def step(self, accumulator, **kwds):
         s = next(self.values)
         accumulator.append(s)
         return s
@@ -107,8 +107,8 @@ class CompositeSimulation(Simulation):
     def accumulator(self):
         return Composite([], [c.accumulator() for c in self.children])
 
-    def step(self, accumulator):
-        cv = [c.step(a) for c, a in zip(self.children, accumulator.children)]
+    def step(self, accumulator, **kwds):
+        cv = [c.step(a, **kwds) for c, a in zip(self.children, accumulator.children)]
         s = self.combine_child_values(cv)
         accumulator.own.append(s)
         return s
