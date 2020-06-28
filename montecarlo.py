@@ -53,11 +53,11 @@ class Estimate(Simulation):
 
     def __init__(self, low, high, lowest=float("-inf"), highest=float("inf")):
 
-        # 90% of normal values will fall within +/- 1.64 standard
-        # deviations of the mean. We want 90% of values to fall between
-        # low and high, so we want to back out the desired standard
-        # deviation such that 1.64 standard deviations is the distance
-        # from mid to high (or to low).
+        # 90% of normal values will fall within +/- ~1.64 standard
+        # deviations of the mean. We want 90% of values to fall
+        # between low and high, so we want to back out the desired
+        # standard deviation such that 1.64 standard deviations is the
+        # distance from mid to high (or to low).
 
         half_width = (high - low) / 2
         mid = low + half_width
@@ -117,8 +117,9 @@ class CompositeSimulation(Simulation):
             child.add(a, s)
 
     def step(self):
-        child_values = [c.step() for c in self.children]
-        return Composite(self.combine_child_values(child_values), child_values)
+        child_steps = [c.step() for c in self.children]
+        child_values = [c.own if hasattr(c, "own") else c for c in child_steps]
+        return Composite(self.combine_child_values(child_values), child_steps)
 
     def summarize(self, accumulator):
         return Composite(
