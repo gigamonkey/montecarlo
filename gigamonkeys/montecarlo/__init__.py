@@ -1,3 +1,4 @@
+from collections import defaultdict
 from dataclasses import dataclass
 from math import floor
 from random import normalvariate
@@ -27,6 +28,7 @@ class Simulation:
 
     def summarize(self, accumulator):
         "Summarize the accumulated values."
+        # print(f"Simulation summarize {accumulator}")
         return self.confidence_interval(accumulator)
 
     def run(self, iters, **kwds):
@@ -39,12 +41,21 @@ class Simulation:
     def confidence_interval(self, values, p=0.9):
         "Compute a confidence interval from a set of sortable values."
         if not values:
-            raise Exception("Can't compute CI from empty array")
+            return None
 
         ordered = sorted(values)
         size = len(ordered)
         outside = (1 - p) / 2
         return (ordered[floor(size * outside)], ordered[floor(size * 1 - outside)])
+
+    def categorical(self, values):
+        "Return proportion of each of the values in a list."
+        counts = defaultdict(float)
+        total = 0
+        for x in values:
+            counts[x] += 1
+            total += 1
+        return {k: v / total for k, v in counts.items()}
 
 
 class Estimate(Simulation):
@@ -103,6 +114,8 @@ class CompositeSimulation(Simulation):
         return s
 
     def summarize(self, accumulator):
+        # print(f"CompositeSimulation summarize {accumulator}")
+
         return Composite(
             super().summarize(accumulator.own),
             [c.summarize(a) for c, a in zip(self.children, accumulator.children)],
