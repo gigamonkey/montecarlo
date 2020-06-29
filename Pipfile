@@ -5,7 +5,7 @@ verify_ssl = true
 
 [dev-packages]
 autoflake = "*"
-black = "==19.3b0"
+black = "==19.10b0"
 flake8 = "*"
 isort = "*"
 pylint = "*"
