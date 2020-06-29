@@ -124,6 +124,21 @@ class NamedSimulation(Simulation):
         return NamedSummary(self.name, super().summarize(accumulator))
 
 
+class NamedEstimate(NamedSimulation, Estimate):
+    def __init__(self, name, low, high):
+        NamedSimulation.__init__(self, name)
+        Estimate.__init__(self, low, high)
+
+
+class NamedComposite(NamedSimulation, CompositeSimulation):
+
+    "Schedule whose results are a function of its children."
+
+    def __init__(self, name, children):
+        NamedSimulation.__init__(self, name)
+        CompositeSimulation.__init__(self, children)
+
+
 @dataclass
 class NamedSummary:
     name: str

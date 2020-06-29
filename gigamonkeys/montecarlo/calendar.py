@@ -1,4 +1,13 @@
+from dataclasses import dataclass
+from dataclasses import field
+from datetime import date
+
 import pendulum
+
+from gigamonkeys.montecarlo import Estimate
+from gigamonkeys.montecarlo import NamedComposite
+from gigamonkeys.montecarlo import NamedEstimate
+from gigamonkeys.montecarlo import Simulation
 
 
 class Calendar:
@@ -37,6 +46,79 @@ class Calendar:
 
     def days_off_between(self, start, end):
         return sum(start <= d <= end for d in self.days_off)
+
+
+def estimate(name, low, high):
+    return CalendarEstimate(name, low, high)
+
+
+def sequence(name, children):
+    return CalendarSequence(name, children)
+
+
+def parallel(name, children):
+    return CalendarParallel(name, children)
+
+
+class CalendarSimulation(Simulation):
+    def summarize(self, accumulator):
+        return {
+            key: self.confidence_interval([getattr(a, key) for a in accumulator])
+            for key in ("days", "calendar_days", "start", "end")
+        }
+
+
+class CalendarEstimate(NamedEstimate, CalendarSimulation, Estimate):
+    def make_step(self, start=None, calendar=None, **kwds):
+        days = super().make_step(**kwds)
+        end = calendar.n_workdays_after(start, days)
+        return CalendarStep(days, start, end)
+
+
+class CalendarSequence(NamedComposite, CalendarSimulation):
+
+    "Like Sequence except date aware."
+
+    def step_children(self, accumulators, start=None, calendar=None, **kwds):
+
+        next_start = start
+
+        def step(c, a):
+            nonlocal next_start
+            v = c.step(a, start=next_start, calendar=calendar, **kwds)
+            next_start = v.end
+            return v
+
+        return [step(c, a) for c, a in zip(self.children, accumulators)]
+
+    def combine_child_values(self, child_values):
+        days = sum(c.days for c in child_values)
+        start = child_values[0].start
+        end = child_values[-1].end
+        return CalendarStep(days, start, end)
+
+
+class CalendarParallel(NamedComposite, CalendarSimulation):
+
+    "Like Parallel except date aware."
+
+    def combine_child_values(self, child_values):
+        days = max(c.days for c in child_values)
+        start = child_values[0].start
+        end = max(c.end for c in child_values)
+        return CalendarStep(days, start, end)
+
+
+@dataclass
+class CalendarStep:
+
+    days: int
+    start: date
+    end: date
+    calendar_days: int = field(init=False)
+
+    def __post_init__(self):
+        self.calendar_days = (self.end - self.start).days
 
 
 if __name__ == "__main__":

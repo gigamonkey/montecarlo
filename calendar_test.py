@@ -8,7 +8,9 @@ from dataclasses import asdict
 import pendulum
 
 from gigamonkeys.montecarlo.calendar import Calendar
-from gigamonkeys.montecarlo.schedule import CalendarEstimate, CalendarParallel, CalendarSequence
+from gigamonkeys.montecarlo.calendar import estimate
+from gigamonkeys.montecarlo.calendar import parallel
+from gigamonkeys.montecarlo.calendar import sequence
 
 
 def default(o):
@@ -22,17 +24,11 @@ def json_dump(x):
 
 if __name__ == "__main__":
 
-    s = CalendarSequence(
+    s = sequence(
         "Test",
         [
-            CalendarEstimate("Sub 1", 10, 20),
-            CalendarParallel(
-                "P1",
-                [
-                    CalendarEstimate("P-Sub 1", 10, 20),
-                    CalendarEstimate("P-Sub 2", 15, 30),
-                ],
-            ),
+            estimate("Sub 1", 10, 20),
+            parallel("P1", [estimate("P-Sub 1", 10, 20), estimate("P-Sub 2", 15, 30)]),
         ],
     )
 

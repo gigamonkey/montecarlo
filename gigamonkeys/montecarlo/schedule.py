@@ -1,8 +1,3 @@
-from dataclasses import dataclass, field
-from datetime import date
-
-from gigamonkeys.montecarlo import CompositeSimulation, Estimate, NamedSimulation, Simulation
-
 # Simple estimate: values are just ideal days.
 
 # Calendar estimate: values are ideal days, start and end and thus
@@ -31,22 +26,10 @@ from gigamonkeys.montecarlo import CompositeSimulation, Estimate, NamedSimulatio
 # child as the start date for the next child.
 
 
-class NamedEstimate(NamedSimulation, Estimate):
-    def __init__(self, name, low, high):
-        NamedSimulation.__init__(self, name)
-        Estimate.__init__(self, low, high)
+from gigamonkeys.montecarlo import NamedComposite
 
 
-class CompositeSchedule(NamedSimulation, CompositeSimulation):
-
-    "Schedule whose results are a function of its children."
-
-    def __init__(self, name, children):
-        NamedSimulation.__init__(self, name)
-        CompositeSimulation.__init__(self, children)
-
-
-class Sequence(CompositeSchedule):
+class Sequence(NamedComposite):
 
     "Children done in sequence."
 
@@ -54,7 +37,7 @@ class Sequence(CompositeSchedule):
         return sum(child_values)
 
 
-class Parallel(CompositeSchedule):
+class Parallel(NamedComposite):
 
     "Children done in parallel and all must complete."
 
@@ -62,70 +45,9 @@ class Parallel(CompositeSchedule):
         return max(child_values)
 
 
-class OneOf(CompositeSchedule):
+class OneOf(NamedComposite):
 
     "Children done in parallel but we stop when one completes."
 
     def combine_child_values(self, child_values):
         return min(child_values)
-
-
-class CalendarSimulation(Simulation):
-    def summarize(self, accumulator):
-        return {
-            key: self.confidence_interval([getattr(a, key) for a in accumulator])
-            for key in ("days", "calendar_days", "start", "end")
-        }
-
-
-class CalendarEstimate(NamedEstimate, CalendarSimulation, Estimate):
-    def make_step(self, start=None, calendar=None, **kwds):
-        days = super().make_step(**kwds)
-        end = calendar.n_workdays_after(start, days)
-        return CalendarStep(days, start, end)
-
-
-class CalendarSequence(CompositeSchedule, CalendarSimulation):
-
-    "Like Sequence except date aware."
-
-    def step_children(self, accumulators, start=None, calendar=None, **kwds):
-
-        next_start = start
-
-        def step(c, a):
-            nonlocal next_start
-            v = c.step(a, start=next_start, calendar=calendar, **kwds)
-            next_start = v.end
-            return v
-
-        return [step(c, a) for c, a in zip(self.children, accumulators)]
-
-    def combine_child_values(self, child_values):
-        days = sum(c.days for c in child_values)
-        start = child_values[0].start
-        end = child_values[-1].end
-        return CalendarStep(days, start, end)
-
-
-class CalendarParallel(CompositeSchedule, CalendarSimulation):
-
-    "Like Parallel except date aware."
-
-    def combine_child_values(self, child_values):
-        days = max(c.days for c in child_values)
-        start = child_values[0].start
-        end = max(c.end for c in child_values)
-        return CalendarStep(days, start, end)
-
-
-@dataclass
-class CalendarStep:
-
-    days: int
-    start: date
-    end: date
-    calendar_days: int = field(init=False)
-
-    def __post_init__(self):
-        self.calendar_days = (self.end - self.start).days

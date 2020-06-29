@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 
-from schedule import NamedEstimate, Parallel, Sequence
-from schedule_dsl import Plus, parse
+from gigamonkeys.montecarlo import NamedEstimate
+from gigamonkeys.montecarlo.schedule import Parallel
+from gigamonkeys.montecarlo.schedule import Sequence
+from gigamonkeys.montecarlo.schedule_dsl import Plus
+from gigamonkeys.montecarlo.schedule_dsl import parse
 
 
 def show_results(r, indent):
