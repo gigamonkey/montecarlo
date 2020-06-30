@@ -21,7 +21,7 @@ def parallel(name, children):
     return DeadlineParallel(name=name, children=children)
 
 
-class DeadlineSimulation(Named, Simulation):
+class DeadlineSummarizer(Simulation):
     def summarize(self, accumulator):
         def noNone(xs):
             return [x for x in xs if x is not None]
@@ -66,7 +66,7 @@ class DeadlineStep:
             self.calendar_days = None
 
 
-class DeadlineEstimate(DeadlineSimulation, CalendarEstimate):
+class DeadlineEstimate(DeadlineSummarizer, CalendarEstimate):
 
     "An estimated value which observes a due date."
 
@@ -74,14 +74,20 @@ class DeadlineEstimate(DeadlineSimulation, CalendarEstimate):
         if start >= due_date:
             return self.not_started(start)
         else:
-            c = super().make_step(start=start, calendar=calendar, **kwds)
+            c = super().make_step(
+                start=start, due_date=due_date, calendar=calendar, **kwds
+            )
             if c.end > due_date:
                 return self.incomplete(c.days, start, due_date)
             else:
                 return self.complete(c.days, c.start, c.end)
 
 
-class DeadlineSequence(CompositeSimulation, DeadlineSimulation):
+class DeadlineComposite(Named, CompositeSimulation, DeadlineSummarizer):
+    pass
+
+
+class DeadlineSequence(DeadlineComposite):
 
     "Like CalendarSequence but also deadline aware."
 
@@ -118,7 +124,7 @@ class DeadlineSequence(CompositeSimulation, DeadlineSimulation):
                 return self.incomplete(days, start, incomplete.end)
 
 
-class DeadlineParallel(CompositeSimulation, DeadlineSimulation):
+class DeadlineParallel(DeadlineComposite):
 
     "Like CalendarParallel but also deadline aware."
 

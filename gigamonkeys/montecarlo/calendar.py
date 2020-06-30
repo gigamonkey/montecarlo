@@ -7,7 +7,6 @@ import pendulum
 from gigamonkeys.montecarlo import CompositeSimulation
 from gigamonkeys.montecarlo import Estimate
 from gigamonkeys.montecarlo import Named
-from gigamonkeys.montecarlo import NamedSummary
 from gigamonkeys.montecarlo import Simulation
 
 
@@ -61,25 +60,26 @@ def parallel(name, children):
     return CalendarParallel(name=name, children=children)
 
 
-class CalendarSimulation(Named, Simulation):
+class CalendarSummarizer(Simulation):
     def summarize(self, accumulator):
-        return NamedSummary(
-            self.name,
-            {
-                key: self.confidence_interval([getattr(a, key) for a in accumulator])
-                for key in ("days", "calendar_days", "start", "end")
-            },
-        )
+        return {
+            key: self.confidence_interval([getattr(a, key) for a in accumulator])
+            for key in ("days", "calendar_days", "start", "end")
+        }
 
 
-class CalendarEstimate(CalendarSimulation, Estimate):
+class CalendarEstimate(Named, CalendarSummarizer, Estimate):
     def make_step(self, start=None, calendar=None, **kwds):
         days = super().make_step(**kwds)
         end = calendar.n_workdays_after(start, days)
         return CalendarStep(days, start, end)
 
 
-class CalendarSequence(CompositeSimulation, CalendarSimulation):
+class CalendarComposite(Named, CompositeSimulation, CalendarSummarizer):
+    pass
+
+
+class CalendarSequence(CalendarComposite):
 
     "Like Sequence except date aware."
 
@@ -102,7 +102,7 @@ class CalendarSequence(CompositeSimulation, CalendarSimulation):
         return CalendarStep(days, start, end)
 
 
-class CalendarParallel(CompositeSimulation, CalendarSimulation):
+class CalendarParallel(CalendarComposite):
 
     "Like Parallel except date aware."
 
