@@ -8,12 +8,21 @@ from typing import List
 z_90 = 1.644853626951
 
 
-class Simulation:
+class Mixin:
+
+    "Because object.__init__ doesn't accept arbitrary keyword args."
+
+    def __init__(self, **kwds):
+        pass
+
+
+class Simulation(Mixin):
 
     "Base class for simulations."
 
     def accumulator(self):
         "Produce an accumulator to hold results of each step."
+        return []
 
     def make_step(self, **kwds):
         "Generate one simulated step"
@@ -28,7 +37,6 @@ class Simulation:
 
     def summarize(self, accumulator):
         "Summarize the accumulated values."
-        # print(f"Simulation summarize {accumulator}")
         return self.confidence_interval(accumulator)
 
     def run(self, iters, **kwds):
@@ -66,7 +74,8 @@ class Estimate(Simulation):
     estimate.
     """
 
-    def __init__(self, low, high, lowest=float("-inf"), highest=float("inf")):
+    def __init__(self, low, high, lowest=float("-inf"), highest=float("inf"), **kwds):
+        super().__init__(low=low, high=high, lowest=lowest, highest=highest, **kwds)
 
         # 90% of normal values will fall within +/- ~1.64 standard
         # deviations of the mean. We want 90% of values to fall
@@ -83,9 +92,6 @@ class Estimate(Simulation):
 
         self.values = iter(value, None)
 
-    def accumulator(self):
-        return []
-
     def make_step(self, **kwds):
         return next(self.values)
 
@@ -94,7 +100,8 @@ class CompositeSimulation(Simulation):
 
     "Simulate the composition of child simulations in some way."
 
-    def __init__(self, children):
+    def __init__(self, children, **kwds):
+        super().__init__(children=children, **kwds)
         self.children = children
 
     def combine_child_values(self, child_values):
@@ -114,12 +121,20 @@ class CompositeSimulation(Simulation):
         return s
 
     def summarize(self, accumulator):
-        # print(f"CompositeSimulation summarize {accumulator}")
-
         return Composite(
             super().summarize(accumulator.own),
             [c.summarize(a) for c, a in zip(self.children, accumulator.children)],
         )
+
+
+class Named(Mixin):
+    def __init__(self, name, **kwds):
+        super().__init__(name=name, **kwds)
+        self.name = name
+
+    # FIXME: not clear this actually ever gets invoked.
+    def summarize(self, accumulator):
+        return NamedSummary(self.name, super().summarize(accumulator))
 
 
 @dataclass
@@ -127,29 +142,6 @@ class Composite:
     "Represent anything that has its own value and child values."
     own: object
     children: List[object]
-
-
-class NamedSimulation(Simulation):
-    def __init__(self, name):
-        self.name = name
-
-    def summarize(self, accumulator):
-        return NamedSummary(self.name, super().summarize(accumulator))
-
-
-class NamedEstimate(NamedSimulation, Estimate):
-    def __init__(self, name, low, high):
-        NamedSimulation.__init__(self, name)
-        Estimate.__init__(self, low, high)
-
-
-class NamedComposite(NamedSimulation, CompositeSimulation):
-
-    "Schedule whose results are a function of its children."
-
-    def __init__(self, name, children):
-        NamedSimulation.__init__(self, name)
-        CompositeSimulation.__init__(self, children)
 
 
 @dataclass

@@ -2,27 +2,27 @@ from dataclasses import dataclass
 from datetime import date
 from typing import Optional
 
-from gigamonkeys.montecarlo import NamedComposite
+from gigamonkeys.montecarlo import CompositeSimulation
+from gigamonkeys.montecarlo import Named
+from gigamonkeys.montecarlo import NamedSummary
 from gigamonkeys.montecarlo import Simulation
 from gigamonkeys.montecarlo.calendar import CalendarEstimate
 
 
 def estimate(name, low, high):
-    return DeadlineEstimate(name, low, high)
+    return DeadlineEstimate(name=name, low=low, high=high)
 
 
 def sequence(name, children):
-    return DeadlineSequence(name, children)
+    return DeadlineSequence(name=name, children=children)
 
 
 def parallel(name, children):
-    return DeadlineParallel(name, children)
+    return DeadlineParallel(name=name, children=children)
 
 
-class DeadlineSimulation(Simulation):
+class DeadlineSimulation(Named, Simulation):
     def summarize(self, accumulator):
-        # print(f"DeadlineSimulation summarize {accumulator}")
-
         def noNone(xs):
             return [x for x in xs if x is not None]
 
@@ -33,7 +33,7 @@ class DeadlineSimulation(Simulation):
             for key in ("days", "calendar_days", "start", "end")
         }
         summary.update(self.categorical(a.disposition for a in accumulator))
-        return summary
+        return NamedSummary(self.name, summary)
 
     def not_started(self, end):
         """
@@ -81,7 +81,7 @@ class DeadlineEstimate(DeadlineSimulation, CalendarEstimate):
                 return self.complete(c.days, c.start, c.end)
 
 
-class DeadlineSequence(NamedComposite, DeadlineSimulation):
+class DeadlineSequence(CompositeSimulation, DeadlineSimulation):
 
     "Like CalendarSequence but also deadline aware."
 
@@ -118,7 +118,7 @@ class DeadlineSequence(NamedComposite, DeadlineSimulation):
                 return self.incomplete(days, start, incomplete.end)
 
 
-class DeadlineParallel(NamedComposite, DeadlineSimulation):
+class DeadlineParallel(CompositeSimulation, DeadlineSimulation):
 
     "Like CalendarParallel but also deadline aware."
 

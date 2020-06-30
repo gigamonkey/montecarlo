@@ -4,9 +4,10 @@ from datetime import date
 
 import pendulum
 
+from gigamonkeys.montecarlo import CompositeSimulation
 from gigamonkeys.montecarlo import Estimate
-from gigamonkeys.montecarlo import NamedComposite
-from gigamonkeys.montecarlo import NamedEstimate
+from gigamonkeys.montecarlo import Named
+from gigamonkeys.montecarlo import NamedSummary
 from gigamonkeys.montecarlo import Simulation
 
 
@@ -49,33 +50,36 @@ class Calendar:
 
 
 def estimate(name, low, high):
-    return CalendarEstimate(name, low, high)
+    return CalendarEstimate(name=name, low=low, high=high)
 
 
 def sequence(name, children):
-    return CalendarSequence(name, children)
+    return CalendarSequence(name=name, children=children)
 
 
 def parallel(name, children):
-    return CalendarParallel(name, children)
+    return CalendarParallel(name=name, children=children)
 
 
-class CalendarSimulation(Simulation):
+class CalendarSimulation(Named, Simulation):
     def summarize(self, accumulator):
-        return {
-            key: self.confidence_interval([getattr(a, key) for a in accumulator])
-            for key in ("days", "calendar_days", "start", "end")
-        }
+        return NamedSummary(
+            self.name,
+            {
+                key: self.confidence_interval([getattr(a, key) for a in accumulator])
+                for key in ("days", "calendar_days", "start", "end")
+            },
+        )
 
 
-class CalendarEstimate(NamedEstimate, CalendarSimulation, Estimate):
+class CalendarEstimate(CalendarSimulation, Estimate):
     def make_step(self, start=None, calendar=None, **kwds):
         days = super().make_step(**kwds)
         end = calendar.n_workdays_after(start, days)
         return CalendarStep(days, start, end)
 
 
-class CalendarSequence(NamedComposite, CalendarSimulation):
+class CalendarSequence(CompositeSimulation, CalendarSimulation):
 
     "Like Sequence except date aware."
 
@@ -98,7 +102,7 @@ class CalendarSequence(NamedComposite, CalendarSimulation):
         return CalendarStep(days, start, end)
 
 
-class CalendarParallel(NamedComposite, CalendarSimulation):
+class CalendarParallel(CompositeSimulation, CalendarSimulation):
 
     "Like Parallel except date aware."
 
